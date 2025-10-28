@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { Client, LocalAuth, Message } from 'whatsapp-web.js'
 import qrcode from 'qrcode-terminal'
 import { ApiClient } from './api'
+import { log, safeError } from './logger'
 
 async function main() {
   const api = new ApiClient()
@@ -13,32 +14,34 @@ async function main() {
 
   client.on('qr', (qr: string) => {
     qrcode.generate(qr, { small: true })
-    console.log('🔐 Scan QR untuk login WhatsApp...')
+    log.info('🔐 Scan QR untuk login WhatsApp...')
   })
 
   client.on('ready', () => {
-    console.log('✅ WhatsApp client siap')
+    log.info('✅ WhatsApp client siap')
   })
 
   client.on('message', async (msg: Message) => {
     const from = msg.from
     const text = msg.body ?? ''
 
-    // 1) Kirim pesan masuk ke webhook (logging)
     try {
       await api.postWebhook({ from, text })
+      log.info({ from }, 'Webhook logged')
     } catch (e) {
-      console.error('⚠️ Gagal kirim webhook:', e)
+      log.error({ err: safeError(e) }, 'Webhook gagal')
     }
 
-    // 2) Minta balasan dari Agent
     try {
       const res = await api.postAgentReply({ from, text })
       if (res.reply) {
         await client.sendMessage(from, res.reply)
+        log.info({ from }, 'Reply sent')
+      } else {
+        log.warn({ from }, 'No reply from agent')
       }
     } catch (e) {
-      console.error('⚠️ Gagal minta balasan Agent:', e)
+      log.error({ err: safeError(e) }, 'Agent reply gagal')
     }
   })
 
@@ -46,6 +49,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('❌ Fatal error:', err)
+  log.fatal({ err: safeError(err) }, 'Fatal error')
   process.exit(1)
 })
