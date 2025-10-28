@@ -1,6 +1,7 @@
-import axios, { AxiosInstance } from 'axios'
-import { env } from './env.js'
-import type { IncomingMessagePayload, AgentReplyRequest, AgentReplyResponse, WebhookResponse } from './types.js'
+import axios from 'axios'
+import type { AxiosInstance } from 'axios'
+import { env } from './env'
+import type { IncomingMessagePayload, AgentReplyRequest, AgentReplyResponse, WebhookResponse } from './types'
 
 /**
  * ApiClient: wrapper untuk call backend FastAPI.
