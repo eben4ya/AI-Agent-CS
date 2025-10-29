@@ -1,7 +1,8 @@
 """LangChain agent bootstrap utilities."""
 
-from .llm import build_chat_model, get_chat_model
 from .chain import ConversationTurn, get_agent_executor, run_agent
+from .llm import build_chat_model, get_chat_model
+from .memory import ConversationMemoryStore, default_memory_store, get_conversation_turns
 from .prompts import SYSTEM_PROMPT, build_agent_prompt
 from .tools import (
     estimate_shipping_tool,
@@ -24,4 +25,7 @@ __all__ = [
     "get_store_info_tool",
     "estimate_shipping_tool",
     "get_agent_tools",
+    "ConversationMemoryStore",
+    "default_memory_store",
+    "get_conversation_turns",
 ]
