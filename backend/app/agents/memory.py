@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, List, Optional
 
-from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
 from langchain_core.messages import BaseMessage
-from langchain_community.chat_message_histories import InMemoryChatMessageHistory
 
 from .types import ConversationTurn
 
