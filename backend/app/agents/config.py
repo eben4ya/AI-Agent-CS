@@ -48,7 +48,7 @@ def get_gemini_config() -> GeminiConfig:
         temperature=_safe_float(os.getenv("GEMINI_TEMPERATURE"), DEFAULT_TEMPERATURE),
         top_p=_safe_float(os.getenv("GEMINI_TOP_P"), DEFAULT_TOP_P),
         top_k=_safe_int(os.getenv("GEMINI_TOP_K"), DEFAULT_TOP_K),
-        max_output_tokens=_safe_int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS"), -1) or None,
+        max_output_tokens=_safe_int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS"), 1024) or None,
     )
 
 
