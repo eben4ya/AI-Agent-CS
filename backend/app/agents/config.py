@@ -8,6 +8,7 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_TEMPERATURE = 0.2
 DEFAULT_TOP_P = 0.95
 DEFAULT_TOP_K = 32
+DEFAULT_BACKEND_API_URL = "http://localhost:8000"
 
 
 def _safe_float(value: str | None, fallback: float) -> float:
@@ -49,3 +50,9 @@ def get_gemini_config() -> GeminiConfig:
         top_k=_safe_int(os.getenv("GEMINI_TOP_K"), DEFAULT_TOP_K),
         max_output_tokens=_safe_int(os.getenv("GEMINI_MAX_OUTPUT_TOKENS"), -1) or None,
     )
+
+
+@lru_cache(maxsize=1)
+def get_backend_api_base_url() -> str:
+    """Base URL for calling this service's REST endpoints."""
+    return os.getenv("BACKEND_API_BASE_URL", DEFAULT_BACKEND_API_URL)
