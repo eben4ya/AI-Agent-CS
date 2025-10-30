@@ -2,17 +2,22 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
+from pathlib import Path
 from typing import Iterable
 
-from pathlib import Path
-
 from dotenv import load_dotenv
+from sqlalchemy import text
+
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 # Load environment variables (DATABASE_URL, GOOGLE_API_KEY, etc.) before importing app modules.
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from app.agents import run_agent  # noqa: E402
-from app.services.supabase_client import get_session  # noqa: E402
+from app.services.supabase_client import SessionLocal  # noqa: E402
 
 
 def _format_store_profile(row: dict | None) -> str:
@@ -43,16 +48,27 @@ def _format_catalog(rows: Iterable[dict]) -> str:
     return "\n".join(snippets)
 
 
-async def _load_context() -> tuple[str, str]:
-    pool = await get_session()
-    async with pool.acquire() as conn:
-        store_row = await conn.fetchrow("select * from store_info where id=1")
-        catalog_rows = await conn.fetch(
-            "select sku, name, price_cents, description from products order by created_at desc limit 25"
-        )
+def _load_context_sync() -> tuple[str, str]:
+    with SessionLocal() as session:
+        store_row = session.execute(
+            text("SELECT * FROM store_info WHERE id = 1")
+        ).mappings().first()
+
+        catalog_rows = session.execute(
+            text(
+                "SELECT sku, name, price_cents, description "
+                "FROM products ORDER BY created_at DESC LIMIT 25"
+            )
+        ).mappings().all()
+
     return _format_store_profile(dict(store_row) if store_row else None), _format_catalog(
         [dict(row) for row in catalog_rows]
     )
+
+
+async def _load_context() -> tuple[str, str]:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _load_context_sync)
 
 
 async def _run(message: str, session_id: str | None, raw: bool) -> None:
