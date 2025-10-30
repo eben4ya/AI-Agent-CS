@@ -16,45 +16,59 @@ from app.routers import agent as agent_module
 pytestmark = pytest.mark.asyncio
 
 
-class DummyConn:
+class DummyResult:
+    class _Mappings:
+        def __init__(self, rows: List[Dict[str, Any]]) -> None:
+            self._rows = rows
+
+        def first(self) -> Optional[Dict[str, Any]]:
+            return self._rows[0] if self._rows else None
+
+        def all(self) -> List[Dict[str, Any]]:
+            return list(self._rows)
+
+    def __init__(self, rows: List[Dict[str, Any]]) -> None:
+        self._rows = rows
+
+    def mappings(self) -> "DummyResult._Mappings":
+        return DummyResult._Mappings(self._rows)
+
+
+class DummySession:
     def __init__(
         self,
         store_row: Optional[Dict[str, Any]],
         catalog_rows: Iterable[Dict[str, Any]],
-        execute_log: List[Tuple[str, Tuple[Any, ...]]],
+        execute_log: List[Tuple[str, Dict[str, Any]]],
     ) -> None:
         self._store_row = store_row
         self._catalog_rows = list(catalog_rows)
         self._execute_log = execute_log
+        self.closed = False
+        self.commits = 0
 
-    async def fetchrow(self, *args, **kwargs):
-        return self._store_row
+    def execute(self, statement: Any, params: Optional[Dict[str, Any]] = None) -> DummyResult:
+        sql = str(statement)
+        sql_lower = sql.lower()
 
-    async def fetch(self, *args, **kwargs):
-        return list(self._catalog_rows)
+        if "from store_info" in sql_lower:
+            rows = [self._store_row] if self._store_row else []
+            return DummyResult(rows)
 
-    async def execute(self, sql: str, *params: Any):
-        self._execute_log.append((sql, params))
-        return "OK"
+        if "from products" in sql_lower:
+            return DummyResult(list(self._catalog_rows))
 
+        if "insert into chat_logs" in sql_lower:
+            self._execute_log.append((sql, params or {}))
+            return DummyResult([])
 
-class DummyAcquire:
-    def __init__(self, conn: DummyConn) -> None:
-        self._conn = conn
+        raise AssertionError(f"Unhandled SQL in test double: {sql}")
 
-    async def __aenter__(self) -> DummyConn:
-        return self._conn
+    def commit(self) -> None:
+        self.commits += 1
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
-        return None
-
-
-class DummyPool:
-    def __init__(self, conn: DummyConn) -> None:
-        self._conn = conn
-
-    def acquire(self) -> DummyAcquire:
-        return DummyAcquire(self._conn)
+    def close(self) -> None:
+        self.closed = True
 
 
 class FakeMemoryStore:
@@ -88,19 +102,21 @@ def patch_agent_dependencies(
     run_agent_result: Optional[Dict[str, Any]] = None,
     memory_store: Optional[FakeMemoryStore] = None,
 ):
-    execute_log: List[Tuple[str, Tuple[Any, ...]]] = []
-    conn = DummyConn(store_row, catalog_rows, execute_log)
-    pool = DummyPool(conn)
+    execute_log: List[Tuple[str, Dict[str, Any]]] = []
+    session = DummySession(store_row, catalog_rows, execute_log)
 
-    async def fake_get_pool():
-        return pool
+    async def override_get_session():
+        try:
+            yield session
+        finally:
+            session.close()
 
-    monkeypatch.setattr(agent_module, "get_session", fake_get_pool)
+    monkeypatch.setitem(app.dependency_overrides, agent_module.get_session, override_get_session)
 
     memory = memory_store or FakeMemoryStore()
     monkeypatch.setattr(agent_module, "default_memory_store", memory)
 
-    captured: Dict[str, Any] = {}
+    captured: Dict[str, Any] = {"session": session}
 
     async def fake_run_agent(message: str, **kwargs):
         captured["message"] = message
@@ -151,9 +167,9 @@ async def test_agent_reply_success(monkeypatch, client):
     assert len(execute_log) == 1
     sql, params = execute_log[0]
     assert "insert into chat_logs" in sql.lower()
-    assert params[0] == "62812"
-    assert params[1] == run_agent_result["reply"]
-    assert params[2]["intermediate_steps"] == ["tool_call"]
+    assert params["wa_user"] == "62812"
+    assert params["message"] == run_agent_result["reply"]
+    assert params["meta"]["intermediate_steps"] == ["tool_call"]
 
 
 async def test_agent_reply_missing_sender_returns_422(client):
@@ -188,7 +204,7 @@ async def test_agent_reply_uses_fallback_when_agent_empty(monkeypatch, client):
 
     # Ensure log written with the fallback response.
     sql, params = execute_log[0]
-    assert params[1] == payload["reply"]
+    assert params["message"] == payload["reply"]
 
     # run_agent still received context data.
     assert captured["kwargs"]["store_profile"].startswith("Name: Toko Aja")
