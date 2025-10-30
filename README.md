@@ -45,4 +45,4 @@ Dive into the full Notion write-up—prompt design, testing, limitations, and fu
 
 ## Demo
 
-https://github.com/user-attachments/assets/b2958508-8440-43a6-9315-75ba0cd02e60
+https://github.com/user-attachments/assets/67e34846-5b67-4ecf-9786-fb0001ec708e
