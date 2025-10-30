@@ -7,9 +7,14 @@
 Create `.env` (use your Supabase creds):
 ```
 
-DATABASE_URL=postgresql://postgres:password@db.supabase.co:5432/postgres
-RAJAONGKIR_KEY=your_ro_key
-RAJAONGKIR_BASE=[https://api.rajaongkir.com/starter](https://api.rajaongkir.com/starter)
+GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY_HERE
+user=YOUR_DB_USER_HERE 
+password=YOUR_DB_PASSWORD_HERE
+host=YOUR_DB_HOST
+port=YOUR_DB_PORT
+dbname=YOUR_DB_NAME_HERE
+RAJAONGKIR_KEY=YOUR_RAJAONGKIR_KEY_HERE
+RAJAONGKIR_BASE=https://rajaongkir.komerce.id/api/v1/
 
 ```
 
