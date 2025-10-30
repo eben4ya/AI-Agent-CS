@@ -73,6 +73,14 @@ async def estimate_shipping_tool(dest_city_id: int, weight_grams: int = 1000, co
     return _serialize(data)
 
 
+@tool("list_shipping_destinations")
+async def list_shipping_destinations_tool(query: Optional[str] = None) -> str:
+    """Search available shipping destination cities (RajaOngkir). Use to fetch city IDs before estimating cost."""
+    params = {"q": query} if query else None
+    data = await _request_json("GET", "/shipping/destinations", params=params)
+    return _serialize(data)
+
+
 def get_agent_tools() -> List:
     """Return the default toolset used by the CS agent."""
     return [
@@ -80,6 +88,7 @@ def get_agent_tools() -> List:
         get_product_by_sku_tool,
         get_store_info_tool,
         estimate_shipping_tool,
+        list_shipping_destinations_tool,
     ]
 
 
@@ -88,5 +97,6 @@ __all__ = [
     "get_product_by_sku_tool",
     "get_store_info_tool",
     "estimate_shipping_tool",
+    "list_shipping_destinations_tool",
     "get_agent_tools",
 ]

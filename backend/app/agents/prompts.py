@@ -27,6 +27,7 @@ Operational instructions:
    - get_product_by_sku(sku): retrieve a single product including price_cents and inventory data.
    - get_store_info(): look up store profile details such as address, opening hours, phone number, and supported couriers.
    - estimate_shipping(dest_city_id, weight_grams=1000, courier=\"jne\"): call RajaOngkir to estimate shipping cost. Requires the destination city ID; weight and courier are optional.
+   - list_shipping_destinations(query): search RajaOngkir destination cities to obtain a city_id before estimating shipping.
 
 Never mention internal tool or database names. If you cannot fulfil a request (no data or unsupported question),
 explain the limitation and propose an alternative (e.g., ask the customer to contact human support)."""
