@@ -1,15 +1,23 @@
 from fastapi import APIRouter, BackgroundTasks
-from app.services.supabase_client import get_session
+from sqlalchemy import text
+from app.services.supabase_client import SessionLocal  # pastikan diekspor di supabase_client
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 
-async def _log_incoming(payload: dict):
-    pool = await get_session()
-    async with pool.acquire() as conn:
-        await conn.execute(
-            "insert into chat_logs (wa_user,direction,message,meta) values ($1,'in',$2,$3)",
-            payload.get("from"), payload.get("text"), payload
-        )
+def _log_incoming(payload: dict):
+    db = SessionLocal()
+    try:
+        db.execute(text("""
+            INSERT INTO chat_logs (wa_user, direction, message, meta)
+            VALUES (:wa_user, 'in', :message, :meta)
+        """), {
+            "wa_user": payload.get("from"),
+            "message": payload.get("text"),
+            "meta": payload,
+        })
+        db.commit()
+    finally:
+        db.close()
 
 @router.post("/whatsapp")
 async def wa_incoming(payload: dict, bg: BackgroundTasks):
