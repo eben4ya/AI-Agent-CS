@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
+from sqlalchemy.types import JSON
 
 from app.agents import get_conversation_turns, run_agent, default_memory_store
 from app.services.supabase_client import get_session
@@ -56,10 +57,12 @@ async def agent_reply(body: dict, db: Session = Depends(get_session)):
     reply = result.get("reply", "") or "Maaf, saya belum bisa menjawab sekarang. Mohon tunggu sebentar ya."
 
     # --- Simpan log (sync) ---
-    db.execute(text("""
+    insert_stmt = text("""
         INSERT INTO chat_logs (wa_user, direction, message, meta)
         VALUES (:wa_user, 'out', :message, :meta)
-    """), {
+    """).bindparams(bindparam("meta", type_=JSON))
+
+    db.execute(insert_stmt, {
         "wa_user": user,
         "message": reply,
         "meta": {"agent": "langchain", "intermediate_steps": result.get("intermediate_steps")},
