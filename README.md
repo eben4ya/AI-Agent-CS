@@ -42,3 +42,7 @@ We’re building a WhatsApp-ready customer-service copilot that keeps pace with 
 
 Dive into the full Notion write-up—prompt design, testing, limitations, and future work included:  
 [AI Agent Customer Service Report →](https://jolly-bee-29a.notion.site/AI-Agent-Customer-Service-29c050bafece80119c83f8344629599d?source=copy_link)
+
+## Demo
+
+https://github.com/user-attachments/assets/b2958508-8440-43a6-9315-75ba0cd02e60
