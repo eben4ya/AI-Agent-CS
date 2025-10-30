@@ -1,41 +1,49 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.services.supabase_client import get_session
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("")
-async def list_products(q: str | None = Query(default=None)):
-    pool = await get_session()
-    sql = """
-    select p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
-           coalesce(
-             json_agg(json_build_object('variant',i.variant,'stock',i.stock))
-             filter (where i.product_id is not null),'[]'
-           ) as inventory
-    from products p
-    left join inventory i on i.product_id=p.id
-    where ($1::text is null or p.name ilike '%'||$1||'%' or p.sku ilike '%'||$1||'%')
-    group by p.id
-    order by p.created_at desc
-    """
-    async with pool.acquire() as conn:
-        rows = await conn.fetch(sql, q)
+def list_products(
+    q: str | None = Query(default=None),
+    db: Session = Depends(get_session),
+):
+    sql = text("""
+    SELECT
+      p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
+      COALESCE(
+        json_agg(json_build_object('variant', i.variant, 'stock', i.stock))
+        FILTER (WHERE i.product_id IS NOT NULL),
+        '[]'::json
+      ) AS inventory
+    FROM products p
+    LEFT JOIN inventory i ON i.product_id = p.id
+    WHERE (:q IS NULL OR p.name ILIKE '%' || :q || '%' OR p.sku ILIKE '%' || :q || '%')
+    GROUP BY p.id
+    ORDER BY p.created_at DESC
+    """)
+    rows = db.execute(sql, {"q": q}).mappings().all()
     return [dict(r) for r in rows]
 
 @router.get("/{sku}")
-async def get_by_sku(sku: str):
-    pool = await get_session()
-    sql = """
-    select p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
-           coalesce(
-             json_agg(json_build_object('variant',i.variant,'stock',i.stock))
-             filter (where i.product_id is not null),'[]'
-           ) as inventory
-    from products p
-    left join inventory i on i.product_id=p.id
-    where p.sku=$1
-    group by p.id
-    """
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(sql, sku)
+def get_by_sku(
+    sku: str,
+    db: Session = Depends(get_session),
+):
+    sql = text("""
+    SELECT
+      p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
+      COALESCE(
+        json_agg(json_build_object('variant', i.variant, 'stock', i.stock))
+        FILTER (WHERE i.product_id IS NOT NULL),
+        '[]'::json
+      ) AS inventory
+    FROM products p
+    LEFT JOIN inventory i ON i.product_id = p.id
+    WHERE p.sku = :sku
+    GROUP BY p.id
+    """)
+    row = db.execute(sql, {"sku": sku}).mappings().first()
     return dict(row) if row else {"error": "not_found"}
