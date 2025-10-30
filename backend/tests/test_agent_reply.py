@@ -95,7 +95,7 @@ def patch_agent_dependencies(
     async def fake_get_pool():
         return pool
 
-    monkeypatch.setattr(agent_module, "get_pool", fake_get_pool)
+    monkeypatch.setattr(agent_module, "get_session", fake_get_pool)
 
     memory = memory_store or FakeMemoryStore()
     monkeypatch.setattr(agent_module, "default_memory_store", memory)

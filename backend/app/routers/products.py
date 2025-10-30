@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Query
-from app.services.supabase_client import get_pool
+from app.services.supabase_client import get_session
 
 router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("")
 async def list_products(q: str | None = Query(default=None)):
-    pool = await get_pool()
+    pool = await get_session()
     sql = """
     select p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
            coalesce(
@@ -24,7 +24,7 @@ async def list_products(q: str | None = Query(default=None)):
 
 @router.get("/{sku}")
 async def get_by_sku(sku: str):
-    pool = await get_pool()
+    pool = await get_session()
     sql = """
     select p.id, p.sku, p.name, p.description, p.price_cents, p.images, p.category,
            coalesce(

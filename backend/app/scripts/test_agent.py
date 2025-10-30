@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 from app.agents import run_agent  # noqa: E402
-from app.services.supabase_client import get_pool  # noqa: E402
+from app.services.supabase_client import get_session  # noqa: E402
 
 
 def _format_store_profile(row: dict | None) -> str:
@@ -44,7 +44,7 @@ def _format_catalog(rows: Iterable[dict]) -> str:
 
 
 async def _load_context() -> tuple[str, str]:
-    pool = await get_pool()
+    pool = await get_session()
     async with pool.acquire() as conn:
         store_row = await conn.fetchrow("select * from store_info where id=1")
         catalog_rows = await conn.fetch(

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.agents import get_conversation_turns, run_agent, default_memory_store
-from app.services.supabase_client import get_pool
+from app.services.supabase_client import get_session
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
@@ -13,7 +13,7 @@ async def agent_reply(body: dict):
     if not user or not text:
         raise HTTPException(status_code=422, detail="Missing required message fields.")
 
-    pool = await get_pool()
+    pool = await get_session()
     async with pool.acquire() as conn:
         store_row = await conn.fetchrow("select name, address, open_hours, phone, city_id from store_info where id=1")
         catalog_rows = await conn.fetch("select sku, name, price_cents, description from products order by created_at desc limit 25")
